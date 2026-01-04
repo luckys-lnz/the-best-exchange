@@ -1,24 +1,43 @@
 export async function getRates() {
   const DOC_URL =
-    "https://docs.google.com/document/d/e/2PACX-1vT5vJkS26lFaw6LeONnKi2SH2d9JsuirTR97Z2wm6X_9gtpXRq85P0FpxnqkrqxLZbjFmOdgl9uJ_ZM/pub";
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYmkwjHlwBNptKzeXwMimP3uAR6P-c8UuJnLt-5ZucPo2sEE921-re46ouye6b2A-uJUpEMm4TFJ2n/pub?output=csv";
 
   try {
-    const res = await fetch(DOC_URL);
-    if (!res.ok) throw new Error("Failed to fetch rates from Google Doc");
+    const res = await fetch(DOC_URL, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error ${res.status}`);
+    }
 
     const text = await res.text();
-    const json = JSON.parse(text); // direct JSON parsing
 
-    // Validate and parse numbers
-    const BUY_RATE = Number(json.BUY_RATE);
-    const SELL_RATE = Number(json.SELL_RATE);
+    // Split CSV
+    const rows = text.trim().split("\n").slice(1); // remove header row
 
-    if (!BUY_RATE || !SELL_RATE) throw new Error("Invalid rates in document");
+    let BUY_RATE: number | null = null;
+    let SELL_RATE: number | null = null;
+
+    for (const row of rows) {
+      const [key, value] = row.split(",");
+      const num = Number(value);
+
+      if (key === "BUY_RATE") BUY_RATE = num;
+      if (key === "SELL_RATE") SELL_RATE = num;
+    }
+
+    if (BUY_RATE === null || SELL_RATE === null) {
+      throw new Error("Missing BUY_RATE or SELL_RATE in sheet");
+    }
+
+    if (isNaN(BUY_RATE) || isNaN(SELL_RATE)) {
+      throw new Error("Rates are not valid numbers");
+    }
 
     return { BUY_RATE, SELL_RATE };
-  } catch (e) {
-    console.error("Failed to fetch rates from Google Doc:", e);
-    // IMPORTANT: Remove defaults if you don’t want fallback
+  } catch (error) {
+    console.error("Failed to fetch rates from Google Sheets:", error);
     throw new Error("Unable to fetch live rates. Please try again later.");
   }
 }

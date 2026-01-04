@@ -1,100 +1,87 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const PROFIT = 10
-const SHEET_JSON_URL =
-  "https://docs.google.com/document/d/e/2PACX-1vT5vJkS26lFaw6LeONnKi2SH2d9JsuirTR97Z2wm6X_9gtpXRq85P0FpxnqkrqxLZbjFmOdgl9uJ_ZM/pub"
-
-type Rates = { BUY_RATE: number; SELL_RATE: number }
-
-async function fetchSheetRates(): Promise<Rates> {
-  const res = await fetch(SHEET_JSON_URL)
-  if (!res.ok) throw new Error("Failed to fetch sheet")
-
-  const text = await res.text()
-  // strip Google's wrapper
-  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1))
-
-  let BUY_RATE = 0
-  let SELL_RATE = 0
-
-  json.table.rows.forEach((row: any) => {
-    const key = row.c[0]?.v
-    const value = Number(row.c[1]?.v)
-    if (key === "BUY_RATE") BUY_RATE = value
-    if (key === "SELL_RATE") SELL_RATE = value
-  })
-
-  if (!BUY_RATE || !SELL_RATE) throw new Error("Invalid sheet data")
-
-  return { BUY_RATE, SELL_RATE }
-}
+import { useLiveRates } from "@/hooks/useLiveRates"
+import { PROFIT } from "@/lib/constants"
+type Rates = { BUY_RATE: number; SELL_RATE: number };
 
 export function RateConvert() {
-  const [amount, setAmount] = useState("")
-  const [fromCurrency, setFromCurrency] = useState("NGN")
-  const [toCurrency, setToCurrency] = useState("GHS")
-  const [result, setResult] = useState<number | null>(null)
-  const [rates, setRates] = useState<Rates | null>(null)
-  const [error, setError] = useState("")
+  const [amount, setAmount] = useState("");
+  const [fromCurrency, setFromCurrency] = useState("NGN");
+  const [toCurrency, setToCurrency] = useState("GHS");
+  const [result, setResult] = useState<number | null>(null);
+  const [rates, setRates] = useState<Rates | null>(null);
+  const [error, setError] = useState("");
 
-  // Fetch rates on mount and every 60 seconds
+  const { rates: liveRates, loading, error: loadError } = useLiveRates({
+    pollInterval: 60_000,
+  })
+
   useEffect(() => {
-    const loadRates = async () => {
-      try {
-        const data = await fetchSheetRates()
-        setRates(data)
-        setError("")
-      } catch {
-        setRates(null)
-        setError("Unable to fetch current rates.")
-      }
-    }
+    setRates(liveRates)
+  }, [liveRates])
 
-    loadRates()
-    const interval = setInterval(loadRates, 60_000)
-    return () => clearInterval(interval)
-  }, [])
+  useEffect(() => {
+    if (loadError) setError(loadError)
+    else setError("")
+  }, [loadError])
+
+  const effectiveRates = rates
+    ? {
+        BUY: rates.BUY_RATE - PROFIT,
+        SELL: rates.SELL_RATE + PROFIT,
+      }
+    : null;
 
   const handleConvert = () => {
-    if (!rates) {
-      setResult(null)
-      return
+    if (!effectiveRates) return;
+
+    const numAmount = Number(amount);
+    if (!numAmount || isNaN(numAmount)) return;
+
+    let converted: number;
+
+    // NGN → GHS (user sends NGN)
+    if (fromCurrency === "NGN" && toCurrency === "GHS") {
+      converted = numAmount / effectiveRates.SELL;
+    }
+    // GHS → NGN (user sends GHS)
+    else if (fromCurrency === "GHS" && toCurrency === "NGN") {
+      converted = numAmount * effectiveRates.BUY;
+    } else {
+      converted = numAmount;
     }
 
-    const numAmount = Number(amount)
-    if (!numAmount || isNaN(numAmount)) {
-      setResult(null)
-      return
-    }
-
-    // Apply profit adjustments
-    const BUY_RATE = rates.BUY_RATE - PROFIT
-    const SELL_RATE = rates.SELL_RATE + PROFIT
-
-    let converted
-    if (fromCurrency === "NGN" && toCurrency === "GHS") converted = numAmount / SELL_RATE
-    else if (fromCurrency === "GHS" && toCurrency === "NGN") converted = numAmount * BUY_RATE
-    else converted = numAmount
-
-    setResult(Number(converted.toFixed(2)))
-  }
+    setResult(Number(converted.toFixed(2)));
+  };
 
   const handleSwapCurrency = () => {
-    setFromCurrency(toCurrency)
-    setToCurrency(fromCurrency)
-    setResult(null)
-    setAmount("")
-  }
+    setFromCurrency(toCurrency);
+    setToCurrency(fromCurrency);
+    setResult(null);
+    setAmount("");
+  };
 
   return (
-    <Card className="border-[color:var(--border)] bg-[color:var(--card)] shadow-sm transition-colors">
-      <CardHeader className="border-b border-[color:var(--sidebar-border)]">
+    <Card className="border-border bg-card shadow-sm transition-colors">
+      <CardHeader className="border-b border-sidebar-border">
         <CardTitle>Convert</CardTitle>
         <CardDescription>Exchange between currencies instantly</CardDescription>
       </CardHeader>
@@ -104,8 +91,14 @@ export function RateConvert() {
         {error && <p className="text-red-600 font-semibold">{error}</p>}
 
         {/* From Currency */}
-        <Select value={fromCurrency} onValueChange={setFromCurrency} disabled={!rates}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select
+          value={fromCurrency}
+          onValueChange={setFromCurrency}
+          disabled={!rates || loading}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="NGN">NGN (Nigerian Naira)</SelectItem>
             <SelectItem value="GHS">GHS (Ghanaian Cedi)</SelectItem>
@@ -113,36 +106,54 @@ export function RateConvert() {
         </Select>
 
         {/* To Currency */}
-        <Select value={toCurrency} onValueChange={setToCurrency} disabled={!rates}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select
+          value={toCurrency}
+          onValueChange={setToCurrency}
+          disabled={!rates || loading}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="GHS">GHS (Ghanaian Cedi)</SelectItem>
             <SelectItem value="NGN">NGN (Nigerian Naira)</SelectItem>
           </SelectContent>
         </Select>
 
-        <Button onClick={handleSwapCurrency} variant="outline" disabled={!rates}>⇄ Swap</Button>
+        <Button
+          onClick={handleSwapCurrency}
+          variant="outline"
+          disabled={!rates || loading}
+        >
+          ⇄ Swap
+        </Button>
 
         <Input
           type="number"
           placeholder="0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          disabled={!rates}
+          disabled={!rates || loading}
         />
 
-        <Button onClick={handleConvert} disabled={!rates}>Convert</Button>
+        <Button onClick={handleConvert} disabled={!rates || loading}>
+          Convert
+        </Button>
 
         {/* Display Result */}
         {result !== null && (
           <div>
-            <p>{result.toFixed(2)} {toCurrency}</p>
+            <p>
+              {result.toFixed(2)} {toCurrency}
+            </p>
           </div>
         )}
 
         {/* Show "-" if rates are not loaded */}
-        {!rates && !error && <p className="text-gray-500 font-semibold">-</p>}
+        {!rates && !error && loading && (
+          <p className="text-gray-500 font-semibold">Loading rates…</p>
+        )}
       </CardContent>
     </Card>
-  )
+  );
 }

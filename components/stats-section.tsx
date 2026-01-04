@@ -13,11 +13,11 @@ export function StatsSection() {
       {STATS.map((stat) => (
         <Card
           key={stat.label}
-          className="border border-[color:var(--border)] bg-[color:var(--card)] shadow-sm transition-colors"
+          className="border border-border bg-card shadow-sm transition-colors"
         >
           <CardContent className="pt-6 text-center">
-            <p className="text-[color:var(--muted-foreground)] text-xs mb-2 font-semibold uppercase">{stat.label}</p>
-            <p className="text-2xl font-bold text-[color:var(--card-foreground)]">{stat.value}</p>
+            <p className="text-muted-foreground text-xs mb-2 font-semibold uppercase">{stat.label}</p>
+            <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
           </CardContent>
         </Card>
       ))}
