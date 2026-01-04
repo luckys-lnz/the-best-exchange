@@ -21,9 +21,9 @@ export function ContactSection() {
   }
 
   return (
-    <Card className="border-[color:var(--border)] bg-[color:var(--card)] shadow-sm transition-colors mt-16">
-      <CardHeader className="border-b border-[color:var(--sidebar-border)]">
-        <CardTitle className="text-[color:var(--card-foreground)] text-xl">Get Started</CardTitle>
+    <Card className="border-border bg-card shadow-sm transition-colors mt-16">
+      <CardHeader className="border-b border-sidebar-border">
+        <CardTitle className="text-card-foreground text-xl">Get Started</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
         <div className="grid md:grid-cols-2 gap-4">
@@ -50,32 +50,32 @@ export function ContactSection() {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-[color:var(--sidebar-border)]">
-          <p className="text-center text-[color:var(--muted-foreground)] text-xs">
+        <div className="pt-4 border-t border-sidebar-border">
+          <p className="text-center text-muted-foreground text-xs">
             Response time: Within minutes during business hours
           </p>
         </div>
         
         <div className="pt-4">
-          <h3 className="text-sm font-semibold text-[color:var(--muted-foreground)] mb-2">Phone Support</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2">Phone Support</h3>
           <ul className="space-y-2 text-center">
             <li>
-              <a href="tel:0204531903" className="text-[color:var(--card-foreground)] underline">0204531903</a>
-              <button type="button" onClick={() => copyToClipboard('0204531903')} className="ml-3 text-[color:var(--muted-foreground)] text-xs">Copy</button>
+              <a href="tel:0204531903" className="text-card-foreground underline">0204531903</a>
+              <button type="button" onClick={() => copyToClipboard('0204531903')} className="ml-3 text-muted-foreground text-xs">Copy</button>
             </li>
             <li>
-              <a href="tel:0552641890" className="text-[color:var(--card-foreground)] underline">055 264 1890</a>
-              <button type="button" onClick={() => copyToClipboard('0552641890')} className="ml-3 text-[color:var(--muted-foreground)] text-xs">Copy</button>
+              <a href="tel:0552641890" className="text-card-foreground underline">055 264 1890</a>
+              <button type="button" onClick={() => copyToClipboard('0552641890')} className="ml-3 text-muted-foreground text-xs">Copy</button>
             </li>
             <li>
-              <a href="tel:0539323110" className="text-[color:var(--card-foreground)] underline">0539323110</a>
-              <button type="button" onClick={() => copyToClipboard('0539323110')} className="ml-3 text-[color:var(--muted-foreground)] text-xs">Copy</button>
+              <a href="tel:0539323110" className="text-card-foreground underline">0539323110</a>
+              <button type="button" onClick={() => copyToClipboard('0539323110')} className="ml-3 text-muted-foreground text-xs">Copy</button>
             </li>
           </ul>
         </div>
 
-        <div className="pt-6 border-t border-[color:var(--sidebar-border)]">
-          <p className="text-center text-[color:var(--muted-foreground)] text-xs">© {year} The Best Exchange. All rights reserved.</p>
+        <div className="pt-6 border-t border-sidebar-border">
+          <p className="text-center text-muted-foreground text-xs">© {year} The Best Exchange. All rights reserved.</p>
         </div>
       </CardContent>
     </Card>

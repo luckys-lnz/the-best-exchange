@@ -35,7 +35,7 @@ export function HeroCarousel() {
   }, [])
 
     return (
-      <div className="relative h-56 sm:h-60 overflow-hidden rounded-xl border border-[color:var(--border)] shadow-xl">
+      <div className="relative h-56 sm:h-60 overflow-hidden rounded-xl border border-border shadow-xl">
       {CAROUSEL_ITEMS.map((item, index) => (
         <div
           key={index}

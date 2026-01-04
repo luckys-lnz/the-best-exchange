@@ -1,11 +1,10 @@
 "use client"
 
-import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-[color:var(--sidebar-border)] bg-[color:var(--sidebar)]/90 backdrop-blur transition-colors">
+    <header className="sticky top-0 z-50 border-b border-sidebar-border bg-sidebar/90 backdrop-blur transition-colors">
       <div className="container mx-auto max-w-6xl px-4 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Brand */}
@@ -34,7 +33,7 @@ export function Header() {
           </div>
         </div>
 
-          <p className="mt-2 text-sm text-[color:var(--muted-foreground)] max-w-xl">
+          <p className="mt-2 text-sm text-muted-foreground max-w-xl">
           Professional currency exchange with real-time forex pricing and
           transparent market rates.
         </p>
