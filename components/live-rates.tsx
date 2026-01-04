@@ -5,11 +5,21 @@ type Rates = {
   SELL_RATE: number
 }
 
+type ChildArg = {
+  rates: Rates | null
+  error?: string
+}
+
 type Props = {
-  children: (rates: Rates) => React.ReactNode
+  children: (arg: ChildArg) => React.ReactNode
 }
 
 export async function LiveRates({ children }: Props) {
-  const rates = await getRates()
-  return <>{children(rates)}</>
+  try {
+    const rates = await getRates()
+    return <>{children({ rates })}</>
+  } catch (err: any) {
+    console.error("LiveRates fetch failed:", err)
+    return <>{children({ rates: null, error: err?.message ?? "Failed to fetch rates" })}</>
+  }
 }

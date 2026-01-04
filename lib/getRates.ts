@@ -4,7 +4,9 @@ export async function getRates() {
 
   try {
     const res = await fetch(DOC_URL, {
-      cache: "no-store",
+      // Use ISR so pages can be prerendered at build time and revalidated.
+      // Revalidate every 60 seconds to keep rates reasonably fresh.
+      next: { revalidate: 60 },
     });
 
     if (!res.ok) {
