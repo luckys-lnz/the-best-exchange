@@ -18,33 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const PROFIT = 10;
-const SHEET_JSON_URL =
-  "https://docs.google.com/document/d/e/2PACX-1vT5vJkS26lFaw6LeONnKi2SH2d9JsuirTR97Z2wm6X_9gtpXRq85P0FpxnqkrqxLZbjFmOdgl9uJ_ZM/pub";
-
+import { useLiveRates } from "@/hooks/useLiveRates"
+import { PROFIT } from "@/lib/constants"
 type Rates = { BUY_RATE: number; SELL_RATE: number };
-
-async function fetchSheetRates(): Promise<Rates> {
-  const res = await fetch(SHEET_JSON_URL);
-  if (!res.ok) throw new Error("Failed to fetch sheet");
-
-  const text = await res.text();
-  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
-
-  let BUY_RATE = 0;
-  let SELL_RATE = 0;
-
-  json.table.rows.forEach((row: any) => {
-    const key = row.c[0]?.v;
-    const value = Number(row.c[1]?.v);
-    if (key === "BUY_RATE") BUY_RATE = value;
-    if (key === "SELL_RATE") SELL_RATE = value;
-  });
-
-  if (!BUY_RATE || !SELL_RATE) throw new Error("Invalid sheet data");
-
-  return { BUY_RATE, SELL_RATE };
-}
 
 export function RateCalculator() {
   const [desiredAmount, setDesiredAmount] = useState("");
@@ -54,45 +30,46 @@ export function RateCalculator() {
   const [rates, setRates] = useState<Rates | null>(null);
   const [error, setError] = useState("");
 
-  // Fetch rates on mount and every 60 seconds
+  const { rates: liveRates, loading, error: loadError } = useLiveRates({
+    pollInterval: 60_000,
+  })
+
   useEffect(() => {
-    const loadRates = async () => {
-      try {
-        const data = await fetchSheetRates();
-        setRates(data);
-        setError("");
-      } catch {
-        setRates(null);
-        setError("Unable to fetch current rates.");
+    setRates(liveRates)
+  }, [liveRates])
+
+  useEffect(() => {
+    if (loadError) setError(loadError)
+    else setError("")
+  }, [loadError])
+
+  const effectiveRates = rates
+    ? {
+        BUY: rates.BUY_RATE - PROFIT,
+        SELL: rates.SELL_RATE + PROFIT,
       }
-    };
-
-    loadRates();
-    const interval = setInterval(loadRates, 60_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const BUY_RATE = rates ? rates.BUY_RATE - PROFIT : 0;
-  const SELL_RATE = rates ? rates.SELL_RATE + PROFIT : 0;
+    : null;
 
   const handleCalculate = () => {
-    if (!rates) {
-      setResult(null);
-      return;
+    if (!effectiveRates) return;
+
+    const amount = Number(desiredAmount);
+    if (!amount || isNaN(amount)) return;
+
+    let calculated: number;
+
+    // User wants GHS, sending NGN
+    if (fromCurrency === "NGN" && toCurrency === "GHS") {
+      calculated = amount / effectiveRates.SELL;
+    }
+    // User wants NGN, sending GHS
+    else if (fromCurrency === "GHS" && toCurrency === "NGN") {
+      calculated = amount * effectiveRates.BUY;
+    } else {
+      calculated = amount;
     }
 
-    const desired = Number(desiredAmount);
-    if (!desired || isNaN(desired)) {
-      setResult(null);
-      return;
-    }
-
-    let toSend;
-    if (fromCurrency === "NGN" && toCurrency === "GHS") toSend = desired * SELL_RATE;
-    else if (fromCurrency === "GHS" && toCurrency === "NGN") toSend = desired / BUY_RATE;
-    else toSend = desired;
-
-    setResult(Number(toSend.toFixed(2)));
+    setResult(Number(calculated.toFixed(2)));
   };
 
   const handleSwapCurrency = () => {
@@ -103,12 +80,12 @@ export function RateCalculator() {
   };
 
   return (
-    <Card className="border-[color:var(--border)] bg-[color:var(--card)] shadow-sm transition-colors">
-      <CardHeader className="border-b border-[color:var(--sidebar-border)]">
-        <CardTitle className="text-[color:var(--card-foreground)]">
+    <Card className="border-border bg-card shadow-sm transition-colors">
+      <CardHeader className="border-b border-sidebar-border">
+        <CardTitle className="text-card-foreground">
           Calculate Amount
         </CardTitle>
-        <CardDescription className="text-[color:var(--muted-foreground)]">
+        <CardDescription className="text-muted-foreground">
           How much to send for desired amount
         </CardDescription>
       </CardHeader>
@@ -119,11 +96,15 @@ export function RateCalculator() {
 
         {/* From Currency */}
         <div>
-          <label className="text-xs font-semibold text-[color:var(--muted-foreground)] mb-2 block uppercase">
+          <label className="text-xs font-semibold text-muted-foreground mb-2 block uppercase">
             From
           </label>
-          <Select value={fromCurrency} onValueChange={setFromCurrency} disabled={!rates}>
-            <SelectTrigger className="border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--card-foreground)]">
+          <Select
+              value={fromCurrency}
+              onValueChange={setFromCurrency}
+              disabled={!rates || loading}
+            >
+            <SelectTrigger className="border-border bg-card text-card-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,11 +116,15 @@ export function RateCalculator() {
 
         {/* To Currency */}
         <div>
-          <label className="text-xs font-semibold text-[color:var(--muted-foreground)] mb-2 block uppercase">
+          <label className="text-xs font-semibold text-muted-foreground mb-2 block uppercase">
             To
           </label>
-          <Select value={toCurrency} onValueChange={setToCurrency} disabled={!rates}>
-            <SelectTrigger className="border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--card-foreground)]">
+          <Select
+              value={toCurrency}
+              onValueChange={setToCurrency}
+              disabled={!rates || loading}
+            >
+            <SelectTrigger className="border-border bg-card text-card-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -153,8 +138,8 @@ export function RateCalculator() {
         <Button
           onClick={handleSwapCurrency}
           variant="outline"
-          className="w-full text-emerald-600 border-[color:var(--border)] hover:bg-[color:var(--muted)] bg-[color:var(--card)] text-[color:var(--card-foreground)]"
-          disabled={!rates}
+          className="w-full text-emerald-600 border-border hover:bg-muted bg-card"
+          disabled={!rates || loading}
         >
           ⇄ Swap
         </Button>
@@ -169,8 +154,8 @@ export function RateCalculator() {
             placeholder="0.00"
             value={desiredAmount}
             onChange={(e) => setDesiredAmount(e.target.value)}
-            className="border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--card-foreground)] placeholder:text-[color:var(--muted-foreground)]"
-            disabled={!rates}
+            className="border-border bg-card text-card-foreground placeholder:text-muted-foreground"
+            disabled={!rates || loading}
           />
         </div>
 
@@ -178,20 +163,20 @@ export function RateCalculator() {
         <Button
           onClick={handleCalculate}
           className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-semibold shadow-none"
-          disabled={!rates}
+          disabled={!rates || loading}
         >
           Calculate
         </Button>
 
         {/* Display Result */}
         {result !== null && rates && (
-          <div className="mt-4 p-4 rounded border border-[color:var(--border)] bg-[color:var(--muted)]">
-            <p className="text-xs text-[color:var(--muted-foreground)] uppercase mb-1">
+          <div className="mt-4 p-4 rounded border border-border bg-muted">
+            <p className="text-xs text-muted-foreground uppercase mb-1">
               You need to send
             </p>
-            <p className="text-2xl font-bold text-[color:var(--card-foreground)]">
+            <p className="text-2xl font-bold text-card-foreground">
               {result.toFixed(2)}{" "}
-              <span className="text-base text-[color:var(--muted-foreground)]">
+              <span className="text-base text-muted-foreground">
                 {fromCurrency}
               </span>
             </p>
@@ -199,7 +184,9 @@ export function RateCalculator() {
         )}
 
         {/* Show placeholder "-" if rates not loaded and no error */}
-        {!rates && !error && <p className="text-gray-500 font-semibold">-</p>}
+        {!rates && !error && loading && (
+          <p className="text-gray-500 font-semibold">Loading rates…</p>
+        )}
       </CardContent>
     </Card>
   );
