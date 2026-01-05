@@ -1,25 +1,51 @@
-import { getRates } from '@/lib/getRates'
+"use client";
+
+import { useEffect, useState } from "react";
 
 type Rates = {
-  BUY_RATE: number
-  SELL_RATE: number
-}
+  BUY_RATE: number;
+  SELL_RATE: number;
+  updatedAt: number;
+};
 
-type ChildArg = {
-  rates: Rates | null
-  error?: string
-}
+export function LiveRates({
+  children,
+}: {
+  children: (data: { rates: Rates | null; error: string }) => React.ReactNode;
+}) {
+  const [rates, setRates] = useState<Rates | null>(null);
+  const [error, setError] = useState("");
 
-type Props = {
-  children: (arg: ChildArg) => React.ReactNode
-}
+  useEffect(() => {
+    let mounted = true;
 
-export async function LiveRates({ children }: Props) {
-  try {
-    const rates = await getRates()
-    return <>{children({ rates })}</>
-  } catch (err: any) {
-    console.error("LiveRates fetch failed:", err)
-    return <>{children({ rates: null, error: err?.message ?? "Failed to fetch rates" })}</>
-  }
+    const fetchRates = async () => {
+      try {
+        const res = await fetch("/api/rates", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to fetch rates");
+
+        const data = await res.json();
+
+        if (mounted) {
+          setRates(data);
+          setError("");
+        }
+      } catch (err: any) {
+        if (mounted) {
+          setRates(null);
+          setError(err.message || "Unable to fetch live rates");
+        }
+      }
+    };
+
+    fetchRates();
+    const interval = setInterval(fetchRates, 10_000); // 🔥 10s polling
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  return <>{children({ rates, error })}</>;
 }
