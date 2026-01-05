@@ -1,12 +1,17 @@
-export async function getRates() {
-  const DOC_URL =
+export async function getRates(
+  { forceRefresh = false }: { forceRefresh?: boolean } = {}
+) {
+  const BASE_URL =
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYmkwjHlwBNptKzeXwMimP3uAR6P-c8UuJnLt-5ZucPo2sEE921-re46ouye6b2A-uJUpEMm4TFJ2n/pub?output=csv";
 
+  // 🔥 Cache buster (forces Google CDN refresh)
+  const url = forceRefresh
+    ? `${BASE_URL}&_ts=${Date.now()}`
+    : BASE_URL;
+
   try {
-    const res = await fetch(DOC_URL, {
-      // Use ISR so pages can be prerendered at build time and revalidated.
-      // Revalidate every 60 seconds to keep rates reasonably fresh.
-      next: { revalidate: 60 },
+    const res = await fetch(url, {
+      cache: "no-store", // browser + edge cache bypass
     });
 
     if (!res.ok) {
@@ -15,8 +20,8 @@ export async function getRates() {
 
     const text = await res.text();
 
-    // Split CSV
-    const rows = text.trim().split("\n").slice(1); // remove header row
+    // Parse CSV
+    const rows = text.trim().split("\n").slice(1);
 
     let BUY_RATE: number | null = null;
     let SELL_RATE: number | null = null;
@@ -29,17 +34,18 @@ export async function getRates() {
       if (key === "SELL_RATE") SELL_RATE = num;
     }
 
-    if (BUY_RATE === null || SELL_RATE === null) {
-      throw new Error("Missing BUY_RATE or SELL_RATE in sheet");
-    }
-
-    if (isNaN(BUY_RATE) || isNaN(SELL_RATE)) {
-      throw new Error("Rates are not valid numbers");
+    if (
+      BUY_RATE === null ||
+      SELL_RATE === null ||
+      isNaN(BUY_RATE) ||
+      isNaN(SELL_RATE)
+    ) {
+      throw new Error("Invalid sheet data");
     }
 
     return { BUY_RATE, SELL_RATE };
   } catch (error) {
-    console.error("Failed to fetch rates from Google Sheets:", error);
+    console.error("Failed to fetch rates:", error);
     throw new Error("Unable to fetch live rates. Please try again later.");
   }
 }
