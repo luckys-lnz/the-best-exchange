@@ -10,7 +10,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "MEx - Forex Exchange",
+  title: "The Best Exchange Rate - Forex Exchange",
   description: "Professional Currency Exchange & Real-time Forex Rates",
   viewport: 'width=device-width,initial-scale=1',
   icons: {
