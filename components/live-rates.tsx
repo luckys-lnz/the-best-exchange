@@ -11,41 +11,43 @@ type Rates = {
 export function LiveRates({
   children,
 }: {
-  children: (data: { rates: Rates | null; error: string }) => React.ReactNode;
+  children: (state: {
+    rates: Rates | null;
+    error: string | null;
+    isLoading: boolean;
+  }) => React.ReactNode;
 }) {
   const [rates, setRates] = useState<Rates | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function fetchRates() {
+    setIsLoading(true);      // 🔑 HIDE OLD RATES IMMEDIATELY
+    setError(null);
+
+    try {
+      const res = await fetch("/api/rates", {
+        cache: "no-store",
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch rates");
+
+      const data = await res.json();
+      setRates(data);
+    } catch (err: any) {
+      setError(err.message);
+      setRates(null);
+    } finally {
+      setIsLoading(false);   // 🔑 REVEAL ONLY WHEN DONE
+    }
+  }
 
   useEffect(() => {
-    let mounted = true;
-
-    const fetchRates = async () => {
-      try {
-        const res = await fetch("/api/rates", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to fetch rates");
-
-        const data = await res.json();
-
-        if (mounted) {
-          setRates(data);
-          setError("");
-        }
-      } catch (err: any) {
-        if (mounted) {
-          setRates(null);
-          setError(err.message || "Unable to fetch live rates");
-        }
-      }
-    };
-
     fetchRates();
-    const interval = setInterval(fetchRates, 10_000); // 🔥 10s polling
 
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
+    const interval = setInterval(fetchRates, 60_000); // 1 min refresh
+    return () => clearInterval(interval);
   }, []);
 
-  return <>{children({ rates, error })}</>;
+  return <>{children({ rates, error, isLoading })}</>;
 }

@@ -3,77 +3,120 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { LiveRates } from "@/components/live-rates";
+import { Badge } from "@/components/ui/badge";
 
 export function RateDisplay() {
   return (
     <LiveRates>
-      {({ rates, error }) => {
-        if (error || !rates) {
-          return (
-            <Card>
-              <CardHeader>
-                <CardTitle>Live Exchange Rates</CardTitle>
-                <CardDescription>Unable to load rates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-red-600 text-sm">{error}</p>
-              </CardContent>
-            </Card>
-          );
-        }
-
-        const { BUY_RATE, SELL_RATE, updatedAt } = rates;
-
-        const lastUpdate = new Date(updatedAt).toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          timeZone: "GMT",
-        });
-
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Live Exchange Rates</CardTitle>
-              <CardDescription>
-                Last updated: {lastUpdate} GMT
+      {({ rates, error, isLoading }) => (
+        <Card className="max-w-xl mx-auto shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">
+                Live Exchange Rates
+              </CardTitle>
+              <CardDescription className="mt-1">
+                {isLoading
+                  ? "Updating rates…"
+                  : `Updated at ${new Date(
+                      rates!.updatedAt
+                    ).toLocaleTimeString("en-GB")} GMT`}
               </CardDescription>
-            </CardHeader>
+            </div>
 
-            <CardContent>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">Pair</th>
-                    <th className="text-right py-2 text-green-600">BUY</th>
-                    <th className="text-right py-2 text-red-600">SELL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-3">NGN / GHS</td>
-                    <td className="text-right font-bold text-green-600">
-                      ₦{BUY_RATE}
-                    </td>
-                    <td className="text-right font-bold text-red-600">
-                      ₦{SELL_RATE}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <Badge
+              variant="outline"
+              className={
+                isLoading
+                  ? "text-muted-foreground"
+                  : "border-green-500 text-green-600"
+              }
+            >
+              {isLoading ? "SYNCING" : "LIVE"}
+            </Badge>
+          </CardHeader>
 
-              <div className="mt-4 text-xs text-muted-foreground">
-                ⚠️ Rates update automatically from Google Sheets.
+          <CardContent className="space-y-4">
+            {/* Loading State */}
+            {isLoading && (
+              <div className="grid grid-cols-2 gap-4">
+                <SkeletonCard label="BUY" />
+                <SkeletonCard label="SELL" />
               </div>
-            </CardContent>
-          </Card>
-        );
-      }}
+            )}
+
+            {/* Error State */}
+            {!isLoading && error && (
+              <p className="text-sm text-red-600 text-center">
+                {error}
+              </p>
+            )}
+
+            {/* Rates */}
+            {!isLoading && rates && (
+              <div className="grid grid-cols-2 gap-4">
+                <RateBox
+                  label="BUY"
+                  value={rates.BUY_RATE}
+                  color="green"
+                />
+                <RateBox
+                  label="SELL"
+                  value={rates.SELL_RATE}
+                  color="red"
+                />
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground text-center pt-2">
+              Rates update in real-time. Final amount may vary.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </LiveRates>
+  );
+}
+
+/* ---------------- Components ---------------- */
+
+function RateBox({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: "green" | "red";
+}) {
+  return (
+    <div className="rounded-lg border p-4 text-center">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p
+        className={`mt-1 text-2xl font-bold ${
+          color === "green" ? "text-green-600" : "text-red-600"
+        }`}
+      >
+        ₦{value}
+      </p>
+      <p className="text-xs text-muted-foreground mt-1">
+        per 1 GHS
+      </p>
+    </div>
+  );
+}
+
+function SkeletonCard({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border p-4 text-center space-y-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="h-8 bg-muted animate-pulse rounded" />
+      <div className="h-3 w-20 mx-auto bg-muted animate-pulse rounded" />
+    </div>
   );
 }
