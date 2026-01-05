@@ -11,6 +11,7 @@ export function ThemeToggle() {
   useEffect(() => {
     setMounted(true)
     const theme = localStorage.getItem("theme") || "dark"
+    // theme may be 'dark' or 'alt' (no 'light')
     const isDarkTheme = theme === "dark"
     setIsDark(isDarkTheme)
     applyTheme(isDarkTheme)
@@ -28,7 +29,8 @@ export function ThemeToggle() {
   const toggleTheme = () => {
     const newIsDark = !isDark
     setIsDark(newIsDark)
-    localStorage.setItem("theme", newIsDark ? "dark" : "light")
+    // persist 'dark' or 'alt'
+    localStorage.setItem("theme", newIsDark ? "dark" : "alt")
     applyTheme(newIsDark)
   }
 

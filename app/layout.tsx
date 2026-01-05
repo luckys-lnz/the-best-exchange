@@ -11,24 +11,16 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "The Best Exchange Rate - Forex Exchange",
-  description: "Professional Currency Exchange & Real-time Forex Rates",
+  description: "Professional Currency Exchange & Real-time Forex Rates For GHC/NGN",
   viewport: 'width=device-width,initial-scale=1',
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/icon.png",
       },
     ],
-    apple: "/apple-icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 }
 
