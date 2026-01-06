@@ -51,23 +51,23 @@ export function RateCalculator() {
     : null;
 
   const handleCalculate = () => {
-  if (!effectiveRates) return;
+  if (!rates) return;
 
   const desired = Number(desiredAmount);
   if (!desired || isNaN(desired)) return;
 
   let calculated: number;
 
-  // User wants GHS, sending NGN
+  // NGN → GHS (want GHS, send NGN)
   if (fromCurrency === "NGN" && toCurrency === "GHS") {
-    // desired GHS → calculate required NGN
-    calculated = desired * effectiveRates.SELL;
+    const sellRate = rates.SELL_RATE + PROFIT;
+    calculated = desired * sellRate;
   }
 
-  // User wants NGN, sending GHS
+  // GHS → NGN (want NGN, send GHS)
   else if (fromCurrency === "GHS" && toCurrency === "NGN") {
-    // desired NGN → calculate required GHS
-    calculated = desired / effectiveRates.BUY;
+    const buyRate = rates.BUY_RATE - PROFIT;
+    calculated = desired / buyRate;
   }
 
   else {
@@ -76,6 +76,7 @@ export function RateCalculator() {
 
   setResult(Number(calculated.toFixed(2)));
 };
+
 
 
   const handleSwapCurrency = () => {
